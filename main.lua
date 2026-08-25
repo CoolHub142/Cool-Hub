@@ -316,3 +316,12 @@ RunService.RenderStepped:Connect(function()
 		stroke.Color = rainbowColor
 	end
 end)
+-- Auto Reconnect Script
+local GuiService = game:GetService("GuiService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
+GuiService.ErrorMessageChanged:Connect(function()
+    task.wait(2)
+    TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
+end)
