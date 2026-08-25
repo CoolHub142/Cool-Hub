@@ -7,12 +7,6 @@ local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Reconnect ONLY on Disconnect / Error
-GuiService.ErrorMessageChanged:Connect(function()
-	task.wait(2)
-	TeleportService:Teleport(game.PlaceId, LocalPlayer)
-end)
-
 -- Remotes Reference with Fallback
 local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
 local towerRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerStart") or ReplicatedStorage:FindFirstChild("TowerStart"))
@@ -73,9 +67,9 @@ openStroke.Thickness = 2
 openStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 openStroke.Parent = openBtn
 
--- Main Frame
+-- Main Frame (Adjusted size for 6 options)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Size = UDim2.new(0, 320, 0, 320)
 frame.Position = UDim2.new(0.5, -160, 0.15, 0)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 frame.ClipsDescendants = true
@@ -162,6 +156,8 @@ local autoIncubator = false
 local autoGen = false
 local autoRebirth = false
 local autoRecycler = false
+local autoReconExecute = false
+
 local rainbowStrokes = {frameStroke, openStroke}
 
 local function createSliderRow(text, posY, callback)
@@ -225,7 +221,7 @@ local function createSliderRow(text, posY, callback)
 	end)
 end
 
--- Auto Tower (Set to 2 Minutes Delay)
+-- 1. Auto Tower (2 Mins)
 createSliderRow("Auto Tower (2 Mins)", 0.02, function(isOn)
 	autoTower = isOn
 	if autoTower then
@@ -244,7 +240,8 @@ createSliderRow("Auto Tower (2 Mins)", 0.02, function(isOn)
 	end
 end)
 
-createSliderRow("Auto Claim Incubator", 0.20, function(isOn)
+-- 2. Auto Claim Incubator
+createSliderRow("Auto Claim Incubator", 0.18, function(isOn)
 	autoIncubator = isOn
 	if autoIncubator then
 		task.spawn(function()
@@ -256,19 +253,17 @@ createSliderRow("Auto Claim Incubator", 0.20, function(isOn)
 	end
 end)
 
--- Auto Feeder Upgrade (Max Level 50 bago mag Expand ng Coop)
-createSliderRow("Auto Feeder & Coop", 0.38, function(isOn)
+-- 3. Auto Feeder & Coop
+createSliderRow("Auto Feeder & Coop", 0.34, function(isOn)
 	autoGen = isOn
 	if autoGen then
 		task.spawn(function()
 			while autoGen do
 				local feederLevel = getFeederLevel()
 				
-				-- I-upgrade muna ang Feeder (ID 1)
 				task.spawn(function() triggerRemote(buyGenRemote, 1) end)
 				task.spawn(function() triggerRemote(upgradeGenRemote, 1) end)
 				
-				-- Kapag level 50+ na ang Feeder, tsaka lang mag-e-expand ng Coop
 				if feederLevel >= 50 then
 					for i = 1, 3 do
 						task.spawn(function() triggerRemote(expandCoopRemote) end)
@@ -281,7 +276,8 @@ createSliderRow("Auto Feeder & Coop", 0.38, function(isOn)
 	end
 end)
 
-createSliderRow("Auto Rebirth", 0.56, function(isOn)
+-- 4. Auto Rebirth
+createSliderRow("Auto Rebirth", 0.50, function(isOn)
 	autoRebirth = isOn
 	if autoRebirth then
 		task.spawn(function()
@@ -293,7 +289,8 @@ createSliderRow("Auto Rebirth", 0.56, function(isOn)
 	end
 end)
 
-createSliderRow("Auto Upgrade Recycler", 0.74, function(isOn)
+-- 5. Auto Upgrade Recycler
+createSliderRow("Auto Upgrade Recycler", 0.66, function(isOn)
 	autoRecycler = isOn
 	if autoRecycler then
 		task.spawn(function()
@@ -302,6 +299,27 @@ createSliderRow("Auto Upgrade Recycler", 0.74, function(isOn)
 				task.wait(0.3)
 			end
 		end)
+	end
+end)
+
+-- 6. Auto Recon / Execute (Nasa loob na ng Frame)
+createSliderRow("Auto Recon & Execute", 0.82, function(isOn)
+	autoReconExecute = isOn
+	if autoReconExecute then
+		local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+		if queue_on_teleport then
+			queue_on_teleport([[
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/refs/heads/main/main.lua"))()
+            ]])
+		end
+	end
+end)
+
+-- Auto Reconnect Connection (Gagana lang kapag NAKA-ON ang Toggle #6)
+GuiService.ErrorMessageChanged:Connect(function()
+	if autoReconExecute then
+		task.wait(2)
+		TeleportService:Teleport(game.PlaceId, LocalPlayer)
 	end
 end)
 
