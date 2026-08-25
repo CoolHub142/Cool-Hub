@@ -11,7 +11,7 @@ local LocalPlayer = Players.LocalPlayer
 local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
 if queue_on_teleport then
 	queue_on_teleport([[
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/main/main.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/refs/heads/main/main.lua"))()
     ]])
 end
 
