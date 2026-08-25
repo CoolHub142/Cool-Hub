@@ -7,11 +7,11 @@ local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- 1. Auto Reconnect & Queue on Teleport Setup
+-- Auto Reconnect Setup
 local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
 if queue_on_teleport then
 	queue_on_teleport([[
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/refs/heads/main/main.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/main/main.lua"))()
     ]])
 end
 
@@ -20,7 +20,7 @@ GuiService.ErrorMessageChanged:Connect(function()
 	TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end)
 
--- Remotes Reference with Fallback
+-- Remotes Reference
 local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
 local towerRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerStart") or ReplicatedStorage:FindFirstChild("TowerStart"))
 local towerDeclineRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerContinueDecline") or ReplicatedStorage:FindFirstChild("TowerContinueDecline"))
@@ -31,7 +31,6 @@ local expandCoopRemote = remotesFolder and (remotesFolder:FindFirstChild("Expand
 local rebirthRemote = remotesFolder and (remotesFolder:FindFirstChild("Rebirth") or ReplicatedStorage:FindFirstChild("Rebirth"))
 local upgradeRecyclerRemote = remotesFolder and (remotesFolder:FindFirstChild("UpgradeRecycler") or ReplicatedStorage:FindFirstChild("UpgradeRecycler"))
 
--- Trigger Function
 local function triggerRemote(remote, ...)
 	if not remote then return end
 	if remote:IsA("RemoteFunction") then
@@ -41,14 +40,14 @@ local function triggerRemote(remote, ...)
 	end
 end
 
--- Level Checker
-local function getPlayerLevel()
+-- Check Feeder Level (Generator 1 Level)
+local function getFeederLevel()
 	local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
-	local levelObj = leaderstats and (leaderstats:FindFirstChild("Level") or leaderstats:FindFirstChild("Lvl"))
-	if not levelObj then
-		levelObj = LocalPlayer:FindFirstChild("Level") or LocalPlayer:FindFirstChild("Lvl")
+	local feederObj = leaderstats and (leaderstats:FindFirstChild("FeederLevel") or leaderstats:FindFirstChild("GeneratorLevel") or leaderstats:FindFirstChild("Level"))
+	if not feederObj then
+		feederObj = LocalPlayer:FindFirstChild("FeederLevel") or LocalPlayer:FindFirstChild("Level")
 	end
-	return levelObj and levelObj.Value or 0
+	return feederObj and feederObj.Value or 0
 end
 
 -- ScreenGui Setup
@@ -57,7 +56,6 @@ sg.Name = "WizardHub_RainbowUI"
 sg.ResetOnSpawn = false
 sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Standalone Open Button
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 75, 0, 32)
 openBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
@@ -80,7 +78,6 @@ openStroke.Thickness = 2
 openStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 openStroke.Parent = openBtn
 
--- Main Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 320, 0, 280)
 frame.Position = UDim2.new(0.5, -160, 0.15, 0)
@@ -98,7 +95,6 @@ frameStroke.Thickness = 3
 frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 frameStroke.Parent = frame
 
--- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundTransparency = 1
@@ -115,7 +111,6 @@ title.TextSize = 18
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
 
--- Hide (-) Button
 local hideBtn = Instance.new("TextButton")
 hideBtn.Size = UDim2.new(0, 26, 0, 26)
 hideBtn.Position = UDim2.new(1, -62, 0, 7)
@@ -130,7 +125,6 @@ local hideCorner = Instance.new("UICorner")
 hideCorner.CornerRadius = UDim.new(0, 4)
 hideCorner.Parent = hideBtn
 
--- Destroy (X) Button
 local destroyBtn = Instance.new("TextButton")
 destroyBtn.Size = UDim2.new(0, 26, 0, 26)
 destroyBtn.Position = UDim2.new(1, -32, 0, 7)
@@ -159,14 +153,12 @@ destroyBtn.MouseButton1Click:Connect(function()
 	sg:Destroy()
 end)
 
--- Content Frame
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, 0, 1, -40)
 contentFrame.Position = UDim2.new(0, 0, 0, 40)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = frame
 
--- Variables for Loops
 local autoTower = false
 local autoIncubator = false
 local autoGen = false
@@ -174,7 +166,6 @@ local autoRebirth = false
 local autoRecycler = false
 local rainbowStrokes = {frameStroke, openStroke}
 
--- Slider Switch Creator Function
 local function createSliderRow(text, posY, callback)
 	local rowFrame = Instance.new("Frame")
 	rowFrame.Size = UDim2.new(0.9, 0, 0, 36)
@@ -236,8 +227,7 @@ local function createSliderRow(text, posY, callback)
 	end)
 end
 
--- Toggles Row Setup
--- Auto Tower (Set to 2 Minutes Delay)
+-- Auto Tower (2 Minutes Delay)
 createSliderRow("Auto Tower (2 Mins)", 0.02, function(isOn)
 	autoTower = isOn
 	if autoTower then
@@ -247,7 +237,6 @@ createSliderRow("Auto Tower (2 Mins)", 0.02, function(isOn)
 				task.wait(0.2)
 				triggerRemote(towerDeclineRemote)
 				
-				-- 120 Seconds (2 Minutes) countdown check
 				for i = 1, 120 do
 					if not autoTower then break end
 					task.wait(1)
@@ -269,22 +258,20 @@ createSliderRow("Auto Claim Incubator", 0.20, function(isOn)
 	end
 end)
 
--- Auto Generator & Coop (Level 50 Sequence Check)
-createSliderRow("Auto Generator & Coop", 0.38, function(isOn)
+-- Auto Feeder Upgrade -> Max Level 50 -> Expand Coop
+createSliderRow("Auto Feeder & Coop", 0.38, function(isOn)
 	autoGen = isOn
 	if autoGen then
 		task.spawn(function()
 			while autoGen do
-				local currentLevel = getPlayerLevel()
+				local feederLevel = getFeederLevel()
 				
-				-- Bago mag Level 50: I-upgrade muna ang IDs 1 hanggang 6
-				for id = 1, 6 do
-					task.spawn(function() triggerRemote(buyGenRemote, id) end)
-					task.spawn(function() triggerRemote(upgradeGenRemote, id) end)
-				end
+				-- Tuloy-tuloy na i-upgrade ang Feeder
+				task.spawn(function() triggerRemote(buyGenRemote, 1) end)
+				task.spawn(function() triggerRemote(upgradeGenRemote, 1) end)
 				
-				-- Pagka-reach ng Level 50+: Magsisimula na ang Coop Expansion & next level upgrades
-				if currentLevel >= 50 then
+				-- Kapag nag Level 50 na ang Feeder, tsaka lang mag-e-expand ng Coop
+				if feederLevel >= 50 then
 					for i = 1, 3 do
 						task.spawn(function() triggerRemote(expandCoopRemote) end)
 					end
@@ -320,7 +307,7 @@ createSliderRow("Auto Upgrade Recycler", 0.74, function(isOn)
 	end
 end)
 
--- Rainbow Loop Animation
+-- Rainbow Loop
 local hue = 0
 RunService.RenderStepped:Connect(function()
 	hue = (hue + 0.005) % 1
