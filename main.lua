@@ -7,20 +7,13 @@ local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Auto Reconnect Setup
-local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
-if queue_on_teleport then
-	queue_on_teleport([[
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/refs/heads/main/main.lua"))()
-    ]])
-end
-
+-- Reconnect ONLY on Disconnect / Error
 GuiService.ErrorMessageChanged:Connect(function()
 	task.wait(2)
 	TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end)
 
--- Remotes Reference
+-- Remotes Reference with Fallback
 local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
 local towerRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerStart") or ReplicatedStorage:FindFirstChild("TowerStart"))
 local towerDeclineRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerContinueDecline") or ReplicatedStorage:FindFirstChild("TowerContinueDecline"))
@@ -31,6 +24,7 @@ local expandCoopRemote = remotesFolder and (remotesFolder:FindFirstChild("Expand
 local rebirthRemote = remotesFolder and (remotesFolder:FindFirstChild("Rebirth") or ReplicatedStorage:FindFirstChild("Rebirth"))
 local upgradeRecyclerRemote = remotesFolder and (remotesFolder:FindFirstChild("UpgradeRecycler") or ReplicatedStorage:FindFirstChild("UpgradeRecycler"))
 
+-- Trigger Function
 local function triggerRemote(remote, ...)
 	if not remote then return end
 	if remote:IsA("RemoteFunction") then
@@ -56,6 +50,7 @@ sg.Name = "WizardHub_RainbowUI"
 sg.ResetOnSpawn = false
 sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Standalone Open Button
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 75, 0, 32)
 openBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
@@ -78,6 +73,7 @@ openStroke.Thickness = 2
 openStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 openStroke.Parent = openBtn
 
+-- Main Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 320, 0, 280)
 frame.Position = UDim2.new(0.5, -160, 0.15, 0)
@@ -95,6 +91,7 @@ frameStroke.Thickness = 3
 frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 frameStroke.Parent = frame
 
+-- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundTransparency = 1
@@ -153,6 +150,7 @@ destroyBtn.MouseButton1Click:Connect(function()
 	sg:Destroy()
 end)
 
+-- Content Frame
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, 0, 1, -40)
 contentFrame.Position = UDim2.new(0, 0, 0, 40)
@@ -227,7 +225,7 @@ local function createSliderRow(text, posY, callback)
 	end)
 end
 
--- Auto Tower (2 Minutes Delay)
+-- Auto Tower (Set to 2 Minutes Delay)
 createSliderRow("Auto Tower (2 Mins)", 0.02, function(isOn)
 	autoTower = isOn
 	if autoTower then
@@ -258,7 +256,7 @@ createSliderRow("Auto Claim Incubator", 0.20, function(isOn)
 	end
 end)
 
--- Auto Feeder Upgrade -> Max Level 50 -> Expand Coop
+-- Auto Feeder Upgrade (Max Level 50 bago mag Expand ng Coop)
 createSliderRow("Auto Feeder & Coop", 0.38, function(isOn)
 	autoGen = isOn
 	if autoGen then
@@ -266,11 +264,11 @@ createSliderRow("Auto Feeder & Coop", 0.38, function(isOn)
 			while autoGen do
 				local feederLevel = getFeederLevel()
 				
-				-- Tuloy-tuloy na i-upgrade ang Feeder
+				-- I-upgrade muna ang Feeder (ID 1)
 				task.spawn(function() triggerRemote(buyGenRemote, 1) end)
 				task.spawn(function() triggerRemote(upgradeGenRemote, 1) end)
 				
-				-- Kapag nag Level 50 na ang Feeder, tsaka lang mag-e-expand ng Coop
+				-- Kapag level 50+ na ang Feeder, tsaka lang mag-e-expand ng Coop
 				if feederLevel >= 50 then
 					for i = 1, 3 do
 						task.spawn(function() triggerRemote(expandCoopRemote) end)
