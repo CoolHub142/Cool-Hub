@@ -325,3 +325,14 @@ GuiService.ErrorMessageChanged:Connect(function()
     task.wait(2)
     TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
 end)
+-- Auto Loop / Instant Fire
+task.spawn(function()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Event = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TowerContinueDecline")
+
+    while task.wait() do -- Mabilis na loop nang walang delay
+        pcall(function()
+            Event:FireServer()
+        end)
+    end
+end)
