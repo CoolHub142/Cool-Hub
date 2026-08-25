@@ -1,0 +1,318 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Remotes Reference with Fallback
+local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
+local towerRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerStart") or ReplicatedStorage:FindFirstChild("TowerStart"))
+local towerDeclineRemote = remotesFolder and (remotesFolder:FindFirstChild("TowerContinueDecline") or ReplicatedStorage:FindFirstChild("TowerContinueDecline"))
+local incubatorRemote = remotesFolder and (remotesFolder:FindFirstChild("IncubatorClaim") or ReplicatedStorage:FindFirstChild("IncubatorClaim"))
+local upgradeGenRemote = remotesFolder and (remotesFolder:FindFirstChild("UpgradeGenerator") or ReplicatedStorage:FindFirstChild("UpgradeGenerator"))
+local buyGenRemote = remotesFolder and (remotesFolder:FindFirstChild("BuyGenerator") or ReplicatedStorage:FindFirstChild("BuyGenerator"))
+local expandCoopRemote = remotesFolder and (remotesFolder:FindFirstChild("ExpandCoop") or ReplicatedStorage:FindFirstChild("ExpandCoop"))
+local rebirthRemote = remotesFolder and (remotesFolder:FindFirstChild("Rebirth") or ReplicatedStorage:FindFirstChild("Rebirth"))
+local upgradeRecyclerRemote = remotesFolder and (remotesFolder:FindFirstChild("UpgradeRecycler") or ReplicatedStorage:FindFirstChild("UpgradeRecycler"))
+
+-- Trigger Function
+local function triggerRemote(remote, ...)
+	if not remote then return end
+	if remote:IsA("RemoteFunction") then
+		pcall(function(...) remote:InvokeServer(...) end, ...)
+	elseif remote:IsA("RemoteEvent") then
+		pcall(function(...) remote:FireServer(...) end, ...)
+	end
+end
+
+-- Level Checker
+local function getPlayerLevel()
+	local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+	local levelObj = leaderstats and (leaderstats:FindFirstChild("Level") or leaderstats:FindFirstChild("Lvl"))
+	if not levelObj then
+		levelObj = LocalPlayer:FindFirstChild("Level") or LocalPlayer:FindFirstChild("Lvl")
+	end
+	return levelObj and levelObj.Value or 0
+end
+
+-- ScreenGui Setup
+local sg = Instance.new("ScreenGui")
+sg.Name = "WizardHub_RainbowUI"
+sg.ResetOnSpawn = false
+sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Standalone Open Button (Lalabas lang kung naka-close ang Main Frame)
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0, 75, 0, 32)
+openBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
+openBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+openBtn.Text = "Open"
+openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+openBtn.Font = Enum.Font.SourceSansBold
+openBtn.TextSize = 14
+openBtn.Active = true
+openBtn.Draggable = true
+openBtn.Visible = false
+openBtn.Parent = sg
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 8)
+openCorner.Parent = openBtn
+
+local openStroke = Instance.new("UIStroke")
+openStroke.Thickness = 2
+openStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+openStroke.Parent = openBtn
+
+-- Main Frame (Fixed Position)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Position = UDim2.new(0.5, -160, 0.15, 0)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+frame.ClipsDescendants = true
+frame.Visible = true
+frame.Parent = sg
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 10)
+frameCorner.Parent = frame
+
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Thickness = 3
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+frameStroke.Parent = frame
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundTransparency = 1
+titleBar.Parent = frame
+
+-- Title Text
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 1, 0)
+title.Position = UDim2.new(0, 15, 0, 0)
+title.Text = "Wizard Hub"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+-- Close / Hide (-) Button
+local hideBtn = Instance.new("TextButton")
+hideBtn.Size = UDim2.new(0, 26, 0, 26)
+hideBtn.Position = UDim2.new(1, -62, 0, 7)
+hideBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+hideBtn.Text = "-"
+hideBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+hideBtn.Font = Enum.Font.SourceSansBold
+hideBtn.TextSize = 16
+hideBtn.Parent = titleBar
+
+local hideCorner = Instance.new("UICorner")
+hideCorner.CornerRadius = UDim.new(0, 4)
+hideCorner.Parent = hideBtn
+
+-- Destroy (X) Button
+local destroyBtn = Instance.new("TextButton")
+destroyBtn.Size = UDim2.new(0, 26, 0, 26)
+destroyBtn.Position = UDim2.new(1, -32, 0, 7)
+destroyBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+destroyBtn.Text = "X"
+destroyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+destroyBtn.Font = Enum.Font.SourceSansBold
+destroyBtn.TextSize = 14
+destroyBtn.Parent = titleBar
+
+local destroyCorner = Instance.new("UICorner")
+destroyCorner.CornerRadius = UDim.new(0, 4)
+destroyCorner.Parent = destroyBtn
+
+-- Window Event Logic
+hideBtn.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	openBtn.Visible = true
+end)
+
+openBtn.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	openBtn.Visible = false
+end)
+
+destroyBtn.MouseButton1Click:Connect(function()
+	sg:Destroy()
+end)
+
+-- Content Frame
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -40)
+contentFrame.Position = UDim2.new(0, 0, 0, 40)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = frame
+
+-- Variables for Loops
+local autoTower = false
+local autoIncubator = false
+local autoGen = false
+local autoRebirth = false
+local autoRecycler = false
+local rainbowStrokes = {frameStroke, openStroke}
+
+-- Animated Slider Switch Creator
+local function createSliderRow(text, posY, callback)
+	local rowFrame = Instance.new("Frame")
+	rowFrame.Size = UDim2.new(0.9, 0, 0, 36)
+	rowFrame.Position = UDim2.new(0.05, 0, posY, 0)
+	rowFrame.BackgroundTransparency = 1
+	rowFrame.Parent = contentFrame
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.65, 0, 1, 0)
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 14
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = rowFrame
+
+	-- Switch Track Frame
+	local switchTrack = Instance.new("TextButton")
+	switchTrack.Size = UDim2.new(0, 50, 0, 24)
+	switchTrack.Position = UDim2.new(1, -50, 0.5, -12)
+	switchTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	switchTrack.Text = ""
+	switchTrack.AutoButtonColor = false
+	switchTrack.Parent = rowFrame
+
+	local trackCorner = Instance.new("UICorner")
+	trackCorner.CornerRadius = UDim.new(1, 0)
+	trackCorner.Parent = switchTrack
+
+	local trackStroke = Instance.new("UIStroke")
+	trackStroke.Thickness = 2
+	trackStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	trackStroke.Parent = switchTrack
+	table.insert(rainbowStrokes, trackStroke)
+
+	-- Sliding Knob
+	local knob = Instance.new("Frame")
+	knob.Size = UDim2.new(0, 18, 0, 18)
+	knob.Position = UDim2.new(0, 3, 0.5, -9)
+	knob.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+	knob.Parent = switchTrack
+
+	local knobCorner = Instance.new("UICorner")
+	knobCorner.CornerRadius = UDim.new(1, 0)
+	knobCorner.Parent = knob
+
+	local state = false
+	local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+	switchTrack.MouseButton1Click:Connect(function()
+		state = not state
+		if state then
+			TweenService:Create(switchTrack, tweenInfo, {BackgroundColor3 = Color3.fromRGB(46, 204, 113)}):Play()
+			TweenService:Create(knob, tweenInfo, {Position = UDim2.new(1, -21, 0.5, -9)}):Play()
+		else
+			TweenService:Create(switchTrack, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+			TweenService:Create(knob, tweenInfo, {Position = UDim2.new(0, 3, 0.5, -9)}):Play()
+		end
+		callback(state)
+	end)
+end
+
+-- Toggles Row Setup
+createSliderRow("Auto Tower", 0.02, function(isOn)
+	autoTower = isOn
+	if autoTower then
+		task.spawn(function()
+			while autoTower do
+				triggerRemote(towerRemote)
+				task.wait(0.2)
+				triggerRemote(towerDeclineRemote)
+				
+				for i = 1, 60 do
+					if not autoTower then break end
+					task.wait(1)
+				end
+			end
+		end)
+	end
+end)
+
+createSliderRow("Auto Claim Incubator", 0.20, function(isOn)
+	autoIncubator = isOn
+	if autoIncubator then
+		task.spawn(function()
+			while autoIncubator do
+				triggerRemote(incubatorRemote)
+				task.wait(0.2)
+			end
+		end)
+	end
+end)
+
+createSliderRow("Auto Generator & Coop", 0.38, function(isOn)
+	autoGen = isOn
+	if autoGen then
+		task.spawn(function()
+			while autoGen do
+				local currentLevel = getPlayerLevel()
+				
+				task.spawn(function() triggerRemote(buyGenRemote, 2) end)
+				task.spawn(function() triggerRemote(upgradeGenRemote, 2) end)
+				
+				if currentLevel >= 50 then
+					local genIDs = {1, 3, 4, 5, 6}
+					for _, id in ipairs(genIDs) do
+						task.spawn(function() triggerRemote(buyGenRemote, id) end)
+						task.spawn(function() triggerRemote(upgradeGenRemote, id) end)
+					end
+					
+					for i = 1, 5 do
+						task.spawn(function() triggerRemote(expandCoopRemote) end)
+					end
+				end
+				
+				task.wait(0.1)
+			end
+		end)
+	end
+end)
+
+createSliderRow("Auto Rebirth", 0.56, function(isOn)
+	autoRebirth = isOn
+	if autoRebirth then
+		task.spawn(function()
+			while autoRebirth do
+				triggerRemote(rebirthRemote)
+				task.wait(0.5)
+			end
+		end)
+	end
+end)
+
+createSliderRow("Auto Upgrade Recycler", 0.74, function(isOn)
+	autoRecycler = isOn
+	if autoRecycler then
+		task.spawn(function()
+			while autoRecycler do
+				triggerRemote(upgradeRecyclerRemote)
+				task.wait(0.3)
+			end
+		end)
+	end
+end)
+
+-- Rainbow Loop Animation
+local hue = 0
+RunService.RenderStepped:Connect(function()
+	hue = (hue + 0.005) % 1
+	local rainbowColor = Color3.fromHSV(hue, 1, 1)
+	for _, stroke in ipairs(rainbowStrokes) do
+		stroke.Color = rainbowColor
+	end
+end)
