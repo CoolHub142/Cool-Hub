@@ -2,7 +2,23 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
+local GuiService = game:GetService("GuiService")
+
 local LocalPlayer = Players.LocalPlayer
+
+-- 1. Auto Reconnect & Queue on Teleport Setup
+local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+if queue_on_teleport then
+	queue_on_teleport([[
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/main/main.lua"))()
+    ]])
+end
+
+GuiService.ErrorMessageChanged:Connect(function()
+	task.wait(2)
+	TeleportService:Teleport(game.PlaceId, LocalPlayer)
+end)
 
 -- Remotes Reference with Fallback
 local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
@@ -41,7 +57,7 @@ sg.Name = "WizardHub_RainbowUI"
 sg.ResetOnSpawn = false
 sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Standalone Open Button (Lalabas lang kung naka-close ang Main Frame)
+-- Standalone Open Button
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 75, 0, 32)
 openBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
@@ -64,7 +80,7 @@ openStroke.Thickness = 2
 openStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 openStroke.Parent = openBtn
 
--- Main Frame (Fixed Position)
+-- Main Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 320, 0, 280)
 frame.Position = UDim2.new(0.5, -160, 0.15, 0)
@@ -88,7 +104,6 @@ titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
 
--- Title Text
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -70, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
@@ -100,7 +115,7 @@ title.TextSize = 18
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
 
--- Close / Hide (-) Button
+-- Hide (-) Button
 local hideBtn = Instance.new("TextButton")
 hideBtn.Size = UDim2.new(0, 26, 0, 26)
 hideBtn.Position = UDim2.new(1, -62, 0, 7)
@@ -130,7 +145,6 @@ local destroyCorner = Instance.new("UICorner")
 destroyCorner.CornerRadius = UDim.new(0, 4)
 destroyCorner.Parent = destroyBtn
 
--- Window Event Logic
 hideBtn.MouseButton1Click:Connect(function()
 	frame.Visible = false
 	openBtn.Visible = true
@@ -160,7 +174,7 @@ local autoRebirth = false
 local autoRecycler = false
 local rainbowStrokes = {frameStroke, openStroke}
 
--- Animated Slider Switch Creator
+-- Slider Switch Creator Function
 local function createSliderRow(text, posY, callback)
 	local rowFrame = Instance.new("Frame")
 	rowFrame.Size = UDim2.new(0.9, 0, 0, 36)
@@ -178,7 +192,6 @@ local function createSliderRow(text, posY, callback)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = rowFrame
 
-	-- Switch Track Frame
 	local switchTrack = Instance.new("TextButton")
 	switchTrack.Size = UDim2.new(0, 50, 0, 24)
 	switchTrack.Position = UDim2.new(1, -50, 0.5, -12)
@@ -197,7 +210,6 @@ local function createSliderRow(text, posY, callback)
 	trackStroke.Parent = switchTrack
 	table.insert(rainbowStrokes, trackStroke)
 
-	-- Sliding Knob
 	local knob = Instance.new("Frame")
 	knob.Size = UDim2.new(0, 18, 0, 18)
 	knob.Position = UDim2.new(0, 3, 0.5, -9)
@@ -225,7 +237,8 @@ local function createSliderRow(text, posY, callback)
 end
 
 -- Toggles Row Setup
-createSliderRow("Auto Tower", 0.02, function(isOn)
+-- Auto Tower (Set to 2 Minutes Delay)
+createSliderRow("Auto Tower (2 Mins)", 0.02, function(isOn)
 	autoTower = isOn
 	if autoTower then
 		task.spawn(function()
@@ -234,7 +247,8 @@ createSliderRow("Auto Tower", 0.02, function(isOn)
 				task.wait(0.2)
 				triggerRemote(towerDeclineRemote)
 				
-				for i = 1, 60 do
+				-- 120 Seconds (2 Minutes) countdown check
+				for i = 1, 120 do
 					if not autoTower then break end
 					task.wait(1)
 				end
@@ -255,6 +269,7 @@ createSliderRow("Auto Claim Incubator", 0.20, function(isOn)
 	end
 end)
 
+-- Auto Generator & Coop (Level 50 Sequence Check)
 createSliderRow("Auto Generator & Coop", 0.38, function(isOn)
 	autoGen = isOn
 	if autoGen then
@@ -262,22 +277,20 @@ createSliderRow("Auto Generator & Coop", 0.38, function(isOn)
 			while autoGen do
 				local currentLevel = getPlayerLevel()
 				
-				task.spawn(function() triggerRemote(buyGenRemote, 2) end)
-				task.spawn(function() triggerRemote(upgradeGenRemote, 2) end)
+				-- Bago mag Level 50: I-upgrade muna ang IDs 1 hanggang 6
+				for id = 1, 6 do
+					task.spawn(function() triggerRemote(buyGenRemote, id) end)
+					task.spawn(function() triggerRemote(upgradeGenRemote, id) end)
+				end
 				
+				-- Pagka-reach ng Level 50+: Magsisimula na ang Coop Expansion & next level upgrades
 				if currentLevel >= 50 then
-					local genIDs = {1, 3, 4, 5, 6}
-					for _, id in ipairs(genIDs) do
-						task.spawn(function() triggerRemote(buyGenRemote, id) end)
-						task.spawn(function() triggerRemote(upgradeGenRemote, id) end)
-					end
-					
-					for i = 1, 5 do
+					for i = 1, 3 do
 						task.spawn(function() triggerRemote(expandCoopRemote) end)
 					end
 				end
 				
-				task.wait(0.1)
+				task.wait(0.2)
 			end
 		end)
 	end
@@ -315,24 +328,4 @@ RunService.RenderStepped:Connect(function()
 	for _, stroke in ipairs(rainbowStrokes) do
 		stroke.Color = rainbowColor
 	end
-end)
--- Auto Reconnect Script
-local GuiService = game:GetService("GuiService")
-local TeleportService = game:GetService("TeleportService")
-local Players = game:GetService("Players")
-
-GuiService.ErrorMessageChanged:Connect(function()
-    task.wait(2)
-    TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
-end)
--- Auto Loop / Instant Fire
-task.spawn(function()
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Event = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TowerContinueDecline")
-
-    while task.wait() do -- Mabilis na loop nang walang delay
-        pcall(function()
-            Event:FireServer()
-        end)
-    end
 end)
