@@ -10,11 +10,12 @@ local LocalPlayer = Players.LocalPlayer
 local pgui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- ----------------------------------------------------
--- 1. PERSISTENT DATA & AUTO EXECUTE QUEUE
+-- 1. PERSISTENT DATA SYSTEM
 -- ----------------------------------------------------
 local fileName = "WizardHubSettings.json"
 local defaultSettings = {
 	AutoRecon = true,
+	AutoExec = true,
 	TropicalSeed = false,
 	CosmicSpray = false,
 	RainbowSpray = false,
@@ -36,15 +37,20 @@ local function saveSettings()
 	end
 end
 
--- Teleport Queue for Auto-Executors
-local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
-if queue_on_teleport then
-	queue_on_teleport([[
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/main/main.lua"))()
-    ]])
+-- Function para sa Auto Execute Queue (Kapag naka-ON sa UI)
+local function applyAutoExecute()
+	if settings.AutoExec then
+		local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+		if queue_on_teleport then
+			queue_on_teleport([[
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Adrianne571/Wizard-Hub/main/main.lua"))()
+            ]])
+		end
+	end
 end
+applyAutoExecute()
 
--- Auto Reconnect Logic
+-- Auto Reconnect Listener
 GuiService.ErrorMessageChanged:Connect(function()
 	if settings.AutoRecon then
 		task.wait(1.5)
@@ -87,7 +93,7 @@ local function getPlayerLevel()
 end
 
 -- ----------------------------------------------------
--- 3. MAIN GUI SETUP (WITH SCROLLING FRAME)
+-- 3. MAIN GUI SETUP
 -- ----------------------------------------------------
 local sg = Instance.new("ScreenGui")
 sg.Name = "WizardHub_MasterUI"
@@ -143,7 +149,7 @@ titleBar.Parent = frame
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -70, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
-title.Text = "Wizard Hub (Master Edition)"
+title.Text = "Wizard Hub"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.SourceSansBold
@@ -266,7 +272,7 @@ local function createSliderRow(text, initialValue, callback)
 end
 
 -- ----------------------------------------------------
--- 4. BOMB JUMP FLOATING BUTTON & ENGINE
+-- 4. BOMB JUMP BUTTON
 -- ----------------------------------------------------
 local BOMB_FORCE = 50
 local VERTICAL_OFFSET = -3.2
@@ -312,16 +318,22 @@ bombBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ----------------------------------------------------
--- 5. TOGGLES & FEATURES REGISTRATION
+-- 5. TOGGLES INSIDE THE SCROLLING UI
 -- ----------------------------------------------------
 
--- System Settings
+-- System Switches (Makikita na sa pinakataas ng UI)
 createSliderRow("Auto Reconnect", settings.AutoRecon, function(isOn)
 	settings.AutoRecon = isOn
 	saveSettings()
 end)
 
--- Wizard Hub Remotes Loops
+createSliderRow("Auto Execute (On Rejoin)", settings.AutoExec, function(isOn)
+	settings.AutoExec = isOn
+	saveSettings()
+	applyAutoExecute()
+end)
+
+-- Wizard Hub Game Loops
 local autoTower, autoIncubator, autoGen, autoRebirth, autoRecycler = false, false, false, false, false
 
 createSliderRow("Auto Tower (2 Mins)", false, function(isOn)
@@ -398,7 +410,7 @@ createSliderRow("Auto Upgrade Recycler", false, function(isOn)
 	end
 end)
 
--- Item Spammer Toggles
+-- Item Spammer Switches
 local itemSpamMap = {
 	{key = "TropicalSeed", name = "Spam Tropical Seed", arg = "TropicalSeedPack"},
 	{key = "CosmicSpray", name = "Spam Cosmic Spray", arg = "CosmicSpray"},
@@ -414,7 +426,7 @@ for _, itemData in ipairs(itemSpamMap) do
 end
 
 -- ----------------------------------------------------
--- 6. HEARTBEAT SPAMMER LOOP & RAINBOW ENGINE
+-- 6. HEARTBEAT SPAMMER & RAINBOW ENGINE
 -- ----------------------------------------------------
 RunService.Heartbeat:Connect(function()
 	if not buyShopRemote then return end
