@@ -332,3 +332,11 @@ RunService.RenderStepped:Connect(function()
 		stroke.Color = rainbowColor
 	end
 end)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TowerContinueDecline")
+
+while true do
+    remote:FireServer()
+    task.wait(1) -- Maghihintay ng 1 segundo bago mag-fire ulit (baguhin ang bilang ayon sa kailangan)
+end
